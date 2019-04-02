@@ -43,8 +43,7 @@ def ettoday_crawler(previous_urls, my_sql_login):
             title_a = soup.find_all('a')
         
             title = [a.get_text() for a in title_a]
-            
-            
+                        
             classification_em = soup.find_all('em')
             classification = [em.get_text() for em in classification_em]    
             
