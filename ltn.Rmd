@@ -1,0 +1,83 @@
+---
+title: "LTN"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+library(XML)
+library(RCurl)
+library(httr)
+library(rvest)
+library(xml2)
+library(dplyr)
+stringsAsFactors = TRUE
+```
+
+## 自由時報ltn
+
+url:https://news.ltn.com.tw/search/?keyword=%EF%BC%8C%20%E3%80%82&conditions=or&SYear=2018&SMonth=9&SDay=24&EYear=2018&EMonth=11&EDay=24&page=1
+page從1~3381
+類別：xpath <- "//*[contains(concat( " ", @class, " " ), concat( " ", "chan", " " ))]"
+時間：xpath <- "//*[(@id = "newslistul")]//span"
+標題：xpath <- "//*[contains(concat( " ", @class, " " ), concat( " ", "tit", " " ))]"
+
+
+#page1
+```{r cars}
+doc <- read_html("https://news.ltn.com.tw/search/?keyword=%EF%BC%8C%20%E3%80%82&conditions=or&SYear=2018&SMonth=9&SDay=24&EYear=2018&EMonth=11&EDay=24&page=1") 
+title <- doc %>% 
+  html_nodes(xpath = "//*[contains(concat( \" \", @class, \" \" ), concat( \" \", \"tit\", \" \" ))]//p") %>% html_text()
+title
+date <- doc %>%
+  html_nodes(xpath = "//*[(@id = \"newslistul\")]//span")%>% html_text()
+date
+genre <- doc %>%
+  html_nodes(xpath = "//*[@id=\"newslistul\"]/li/a[1]") %>% 
+  html_text()
+genre
+
+df <- data.frame(genre,date,title)
+
+```
+
+##forloop
+
+```{r pressure, echo=FALSE}
+
+df <- data.frame(genre,date,title)
+for(p in 2:3381){
+    url <- paste0("https://news.ltn.com.tw/search/?keyword=%EF%BC%8C%20%E3%80%82&conditions=or&SYear=2018&SMonth=9&SDay=24&EYear=2018&EMonth=11&EDay=24&page=",p)
+    doc <- read_html(url) 
+title <- doc %>% 
+  html_nodes(xpath = "//*[contains(concat( \" \", @class, \" \" ), concat( \" \", \"tit\", \" \" ))]//p") %>% html_text()
+date <- doc %>%
+  html_nodes(xpath = "//*[(@id = \"newslistul\")]//span")%>% html_text()
+genre <- doc %>%
+  html_nodes(xpath = "//*[@id=\"newslistul\"]/li/a[1]") %>% 
+  html_text()
+    temp.df <- data.frame(genre,date,title)
+    df <- bind_rows(df, temp.df)
+    print(paste(p, nrow(df)))
+}
+df
+library(jsonlite)
+ltn.json <- toJSON(df)
+save(df, file="ltn_all.rda")
+write.csv(df,file="ltn_all.csv")
+```
+
+##politicals
+```{r}
+class(df)
+str(df)
+df_politicals <- df[df$genre == "政治",]
+ltn_political.json <- toJSON(df_politicals)
+save(df_politicals, file="df_politicals.rda")
+write.csv(df_politicals,file="df_politicals.csv")
+```
+
