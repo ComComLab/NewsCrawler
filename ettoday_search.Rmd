@@ -1,0 +1,139 @@
+---
+title: "ETtoday"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(XML)
+library(RCurl)
+library(httr)
+library(rvest)
+library(xml2)
+library(dplyr)
+library(RSelenium)
+library(jsonlite)
+stringsAsFactors = TRUE
+```
+
+##remote scroll
+
+remember to setup selenium environment
+
+brew install selenium-server-standalone
+selenium-server -port 4444
+
+url:https://www.ettoday.net/news/news-list-2018-11-24-1.htm
+*1 for politicals genre
+
+
+
+```{r cars}
+
+remDr <- remoteDriver(
+  remoteServerAddr = "localhost",
+  port = 4444,
+  browserName = "chrome")
+remDr$open()
+remDr$navigate("https://www.ettoday.net/news/news-list-2018-9-24-1.htm")
+#remDr$goBack()
+#remDr$goForward()
+webElem <- remDr$findElement("css", "body")
+#not work because of no delay-time
+#webElem$sendKeysToElement(list(key = "end"))
+#remDr$executeScript("window.scrollTo(0,document.body.scrollHeight);")
+#webElem$screenshot(display = TRUE)
+last_height = 0 #
+repeat {   
+  remDr$executeScript("window.scrollTo(0,document.body.scrollHeight);")
+  Sys.sleep(2) #delay by 2 sec to load. 
+
+  # scroll to : if we can't scroll further, break it
+  new_height = remDr$executeScript("return document.body.scrollHeight")
+  if(unlist(last_height) == unlist(new_height))break
+  else {
+    last_height = new_height
+  }
+}
+#close the page
+#remDr$closeWindow()
+
+```
+
+## scrapping 1 page
+
+use css selector because xpath results incorrect
+css selector : h3 span
+date：xpath = "//*[contains(concat( \" \", @class, \" \" ), concat( \" \", \"date\", \" \" ))]"
+title：xpath = "//*[contains(concat( \" \", @class, \" \" ), concat( \" \", \"part_list_2\", \" \" ))]//a"
+```{r}
+
+#use $getPageSource()[[1]] to read_html
+doc <- read_html(remDr$getPageSource()[[1]])
+date <- doc %>%
+  html_nodes("h3 span") %>% html_text()
+date
+
+title <- doc %>%
+  html_nodes(xpath = "//*[contains(concat( \" \", @class, \" \" ), concat( \" \", \"part_list_2\", \" \" ))]//a") %>% html_text()
+title
+
+df <- data.frame(date,title)
+
+```
+
+
+
+##loop
+SEP 24~30
+OCT 1~31
+NOV 1~24
+
+```{r pressure, echo=FALSE}
+df <- data.frame(date,title)
+
+for(p in 24:30){
+  remDr <- remoteDriver(
+  remoteServerAddr = "localhost",
+  port = 4444,
+  browserName = "chrome")
+  remDr$open()
+  remDr$navigate(paste0("https://www.ettoday.net/news/news-list-2018-9-",p,"-1.htm"))
+  last_height = 0 #
+  repeat {   
+      remDr$executeScript("window.scrollTo(0,document.body.scrollHeight);")
+      Sys.sleep(2) 
+      new_height = remDr$executeScript("return document.body.scrollHeight")
+      if(unlist(last_height) == unlist(new_height))break
+      else {
+          last_height = new_height
+        }
+  }
+  doc <- read_html(remDr$getPageSource()[[1]])
+  date <- doc %>%
+    html_nodes("h3 span") %>% html_text()
+  date
+  
+  title <- doc %>%
+    html_nodes(xpath = "//*[contains(concat( \" \", @class, \" \" ), concat( \" \", \"part_list_2\", \" \" ))]//a") %>% html_text()
+  title
+  
+  temp.df <- data.frame(date,title)
+  df <- bind_rows(df,temp.df)
+  print(paste(p,nrow(df)))
+  
+  }
+
+
+df_et_sep <- df[!duplicated(df),]
+
+
+et_sep.json <- toJSON(df_et_sep)
+save(df_et_sep, file="et_sep.rda")
+write.csv(df_et_sep,file="et_sep.csv")
+```
+
+
+
+
+
