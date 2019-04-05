@@ -7,18 +7,14 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import MySQLdb
 from sqlalchemy import create_engine
-import datetime
 import time
 import sys
 
 def ettoday_crawler(previous_urls, my_sql_login):
     #Create MySQL connection----    
     engine = create_engine(my_sql_login, encoding='utf-8')
-    connection = engine.connect()
-    
-    current_time = datetime.datetime.now()
-    today_date = current_time.strftime("%Y%m%d")
-    
+    connection = engine.connect()    
+ 
     #Crawling and inserting to MySQL table----
     current_urls = []
     for i in range(1, 50): #一次爬500篇
