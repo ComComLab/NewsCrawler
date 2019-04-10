@@ -56,7 +56,8 @@ def ettoday_crawler(previous_urls, my_sql_login):
                     content_invalid = [p.get_text() for p in contnet_p_invalid]
                         
                     content_p = soup_content.select('.story > p')
-                    content = [p.get_text() for p in content_p if p.get_text() not in content_invalid]
+                    #startswith('►►►')的是非關內容的連結
+                    content = [p.get_text() for p in content_p if p.get_text() not in content_invalid and not p.get_text().startswith('►►►')]
                     #把每段文字join起來    
                     content_join  = '/n'.join(content)
                         
