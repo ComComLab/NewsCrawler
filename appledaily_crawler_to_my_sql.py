@@ -10,8 +10,6 @@ from sqlalchemy import create_engine
 import sys
 import time
 
-df_list = []
-
 def appledaily_crawler(previous_urls, my_sql_login):
     #Create MySQL connection----    
     engine = create_engine(my_sql_login, encoding='utf-8')
@@ -49,6 +47,7 @@ def appledaily_crawler(previous_urls, my_sql_login):
                     
                     content_p = soup_content.select('div.ndArticle_contentBox > article > div > p ')[0]
                     text = content_p.get_text()
+                    #剪掉"看了這則新聞的人，也看了....."以後的文字
                     content = text.split('看了這則新聞的人，也看了')[0]
                    
                     datetime_div = soup_content.find('div', 'ndArticle_creat')
