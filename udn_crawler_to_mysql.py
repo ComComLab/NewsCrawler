@@ -2,6 +2,11 @@ import requests
 from bs4 import BeautifulSoup as bs
 from twnews.soup import NewsSoup
 import pandas as pd
+import MySQLdb
+from sqlalchemy import create_engine
+import time
+import sys
+
 #%%
 def crawl_page_links(url):
     soup = bs(requests.get(url).text, 'lxml')
@@ -16,46 +21,36 @@ def crawl_page_links(url):
             pass
     return links
 
-def crawl_news(num):
-    news_list = []
-    urls = []
-    for i in range(num):
-        url = 'https://udn.com/news/get_breaks_article/{}/1/99'.format(i+1)
-        urls.extend(crawl_page_links(url))
-
-    for l in urls:
-        news = {'title':'', 'date_time':'', 'author':'', 'content': '', 'catagoty':'', 'url' : l}
-        soup = bs(requests.get(l).text, 'lxml')
-        nsoup = NewsSoup(l)
-        news['catagoty'] += soup.find(id='nav').find_all('a')[1].get_text()
-        news['title'] += nsoup.title()
-        news['date_time'] += str(nsoup.date())
-        try:
-            news['author'] += nsoup.author()
-        except:
-            news['author'] += 'unknown'
-        news['content'] += nsoup.contents()
-        news_list.append(news)
-    return news_list, urls
-
 def udn_crawler(previous_urls, my_sql_login):
-    #Create MySQL connection----    
-    engine = create_engine(my_sql_login, encoding='utf-8')
-    connection = engine.connect()
-    
-    #Crawling and inserting to MySQL table----
-    news_list, current_url = crawl_news(3)
-    
-    df = pd.DataFrame(news_list)
-    #filter  url not exist in previous urls 
-    df = df[~df.url.isin(previous_urls)]
-    #Insert to MySQL Table
-    if df.shape[0] != 0:
-        df.to_sql(name="udn_realtime", con=connection, if_exists='append', index = False)
-        print('COMPLETE INSERTING: ' + df['datetime'][df.shape[0]-1])
-    else:
-        print('NO NEW DATA INSERTED')    
+    try:
+        #Create MySQL connection----    
+        engine = create_engine(my_sql_login, encoding='utf-8')
+        connection = engine.connect()
+        
+        #Crawling and inserting to MySQL table----
+        current_urls = []
+        for i in range(2):
+            url = 'https://udn.com/news/get_breaks_article/{}/1/99'.format(i+1)
+            current_urls.extend(crawl_page_links(url))
 
+        for l in current_urls:
+            if l not in previous_urls:
+                news = {'title':'', 'date_time':'', 'content': '', 'catagoty':'', 'url' : l}
+                soup = bs(requests.get(l).text, 'lxml')
+                nsoup = NewsSoup(l)
+                news['title'] += nsoup.title()
+                news['catagoty'] += soup.find(id='nav').find_all('a')[1].get_text()
+                news['date_time'] += str(nsoup.date())
+                news['content'] += nsoup.contents()
+                
+                df = pd.DataFrame(news, index = [1])
+                df.to_sql(name="udn_realtime", con=connection, if_exists='append', index = False)
+                print('COMPLETE INSERTING: ' + str(nsoup.date()))
+            else:
+                print('NO NEW DATA INSERTED')   
+        
+    except:
+            print("Unexpected error:", sys.exc_info()[0])
     previous_urls = current_urls
     return previous_urls
 
