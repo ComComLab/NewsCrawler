@@ -11,19 +11,21 @@ import pandas as pd
 import MySQLdb
 from sqlalchemy import create_engine
 import sys
+import time
 
 
-def chinatimes_crawler(previous_urls, my_sql_login):
+def chinatimes_crawler(my_sql_login):
     #Create MySQL connection----    
     engine = create_engine(my_sql_login, encoding='utf-8')
     connection = engine.connect()
+    query = 'SELECT url FROM chinatimes_realtime ORDER BY datetime DESC LIMIT 500; '
+    result_proxy = connection.execute(query)
+    previous_urls = [u for u,  in result_proxy.fetchall()]
     
-    current_urls = []
-    for i in range(3): #一次爬3頁
+    for i in range(6): #一次爬6頁
         try:
-            pre_url = 'https://www.chinatimes.com/realtimenews/?page={}chdtv' 
-            
-            req = requests.get(pre_url.format(i))
+            pre_url = 'https://www.chinatimes.com/realtimenews/?page={}'            
+            req = requests.get(pre_url.format(i+1))
             
             #get url and classification                       
             doc = req.text
@@ -45,9 +47,8 @@ def chinatimes_crawler(previous_urls, my_sql_login):
             df = pd.DataFrame({'title': title,
                                'datetime': datetime,
                                'url': url,
-                               'classification': classification,
-                               'content':content,  
-                               'source': 'Chinatimes'})
+                               'catagoty': classification,
+                               'content':content})
                 
                      #filter  url not exist in previous urls 
             df = df[~df.url.isin(previous_urls)]
@@ -55,22 +56,19 @@ def chinatimes_crawler(previous_urls, my_sql_login):
             #Insert to MySQL Table
             if df.shape[0] != 0:
                 df.to_sql(name="chinatimes_realtime", con=connection, if_exists='append', index = False)
-                print('COMPLETE INSERTING: ' + df['datetime'][df.shape[0]-1])
+                print('COMPLETE INSERTING ' + str(df.shape[0]) + ' ROWS: ' + str(df['datetime'][df.shape[0]-1]))
             else:
                 print('NO NEW DATA INSERTED')
             
         except:
             print("Unexpected error:", sys.exc_info()[0])
-    #set previous urls
-    previous_urls = current_urls
-    return previous_urls
 
 #無限looooooooooooooooooooooop
 previous_urls = []
 my_sql_login = 'mysql+mysqldb://AmoLiu:news_317@140.112.153.64:3306/news?charset=utf8'
 
 while True:
-    previous_urls = appledaily_crawler(previous_urls=previous_urls, my_sql_login=my_sql_login)#appledaily_crawler() 會回傳上一次爬到的url
+    chinatimes_crawler(my_sql_login)
     
-    print('CRAWLER IS SLEEPING')
+    print('------CRAWLER IS SLEEPING------')
     time.sleep(7200)

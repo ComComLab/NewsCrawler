@@ -19,45 +19,47 @@ def crawl_links_and_cat(url):
     category_all = soup.find_all('div', 'tagarea')
     category_list = [c.find('a').get_text() for c in category_all]
     
-    links_cat_dict = dict((a, b) for a, b in zip(links, category_list))
+    links_cat_dict = dict((a, b) for a, b in zip(links, category_list) if b != "")
     return links_cat_dict
 
-def ltn_crawler(previous_urls, my_sql_login):
+def ltn_crawler(my_sql_login):
     try:
         #Create MySQL connection----    
         engine = create_engine(my_sql_login, encoding='utf-8')
         connection = engine.connect()    
+        
+        query = 'SELECT url FROM ltn_realtime ORDER BY datetime DESC LIMIT 500'
+        result_proxy = connection.execute(query)
+        previous_urls = [u for u,  in result_proxy.fetchall()]
        #Crawling and inserting to MySQL table----
         for i in range(5):
             url = 'https://news.ltn.com.tw/list/breakingnews/all/{}'.format(i+1)
             url_and_category = crawl_links_and_cat(url)
             
-        for l, c in url_and_category.items():
-            if l not in previous_urls:
-                news = {'title':'', 'date':'', 'content': '', 'category': c, 'url': l}
-                nsoup = NewsSoup(l)    
-                news['title'] += nsoup.title()
-                news['date'] += str(nsoup.date())
-                news['content'] += nsoup.contents()
-                
-                df = pd.DataFrame(news, index = [1])        
-                df.to_sql(name="ltn_realtime", con=connection, if_exists='append', index = False)
-                print('COMPLETE INSERTING: ' + str(nsoup.date()))
-            else:
-                print('NO NEW DATA INSERTED')  
+            for l, c in url_and_category.items():
+                if l not in previous_urls:
+                    news = {'title':'', 'datetime':'', 'content': '', 'category': c, 'url': l}
+                    nsoup = NewsSoup(l)    
+                    news['title'] += nsoup.title()
+                    news['datetime'] += str(nsoup.date())
+                    news['content'] += nsoup.contents()
+                    
+                    df = pd.DataFrame(news, index = [1]) 
+                    df.to_sql(name="ltn_realtime", con=connection, if_exists='append', index = False)
+                    print('COMPLETE INSERTING: ' + str(nsoup.date()))
+                 
+                else:
+                    print('NO NEW DATA INSERTED')  
     except:
             print("Unexpected error:", sys.exc_info()[0])
-    previous_urls = [k for k in url_and_category]
-    return previous_urls
 
 #無限looooooooooooooooooooooop
-previous_urls = []
 my_sql_login = 'mysql+mysqldb://AmoLiu:news_317@140.112.153.64:3306/news?charset=utf8'
 
 while True:
-    previous_urls = ltn_crawler(previous_urls=previous_urls, my_sql_login=my_sql_login)
+    ltn_crawler(my_sql_login)
     
-    print('CRAWLER IS SLEEPING')
+    print('------CRAWLER IS SLEEPING------')
     time.sleep(7200)
 
 
