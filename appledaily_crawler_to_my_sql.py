@@ -19,7 +19,7 @@ def appledaily_crawler(my_sql_login):
     result_proxy = connection.execute(query)
     previous_urls = [u for u,  in result_proxy.fetchall()]
     #Crawling and inserting to MySQL table----
-    for i in range(5): #一次爬3頁
+    for i in range(8): #一次爬3頁
         try:
             pre_url = 'https://tw.appledaily.com/new/realtime/'
             
