@@ -92,7 +92,7 @@ def ettoday_crawler(my_sql_login):
             print("Unexpected error:", sys.exc_info()[0])
 
 #無限looooooooooooooooooooooop
-my_sql_login = 'mysql+mysqldb://AmoLiu:news_317@140.112.153.64:3306/news?charset=utf8'
+my_sql_login = #enter your login
 
 while True:
     #ettoday_crawler() 會回傳上一次爬到的url
