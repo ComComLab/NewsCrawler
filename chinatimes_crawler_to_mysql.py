@@ -65,7 +65,7 @@ def chinatimes_crawler(my_sql_login):
 
 #無限looooooooooooooooooooooop
 previous_urls = []
-my_sql_login = 'mysql+mysqldb://AmoLiu:news_317@140.112.153.64:3306/news?charset=utf8'
+my_sql_login = #enter your login
 
 while True:
     chinatimes_crawler(my_sql_login)
