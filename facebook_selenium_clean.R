@@ -17,11 +17,11 @@ remDr$navigate(url_login)
 
 #send username
 username <- remDr$findElement(using = "id", value = "m_login_email")
-username$sendKeysToElement(list("dennistsengchocho@gmail.com"))
+username$sendKeysToElement(list("youremail"))
 
 #send password and Enter
 passwd <- remDr$findElement(using = "id", value = "m_login_password")
-passwd$sendKeysToElement(list("personlottery", "\uE007"))
+passwd$sendKeysToElement(list("yourpassword", "\uE007"))
 
 url_ntu <- "https://m.facebook.com/ntusociology/"
 remDr$navigate(url_ntu)
